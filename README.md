@@ -38,17 +38,19 @@ Once instantiated, the following methods perform the following actions:
 * `BrowserMainRunnerImpl::Shutdown` calls `main_loop_->ShutdownThreadsAndCleanUp()`, and deassigns pointers to various variables by calling their `reset` methods with `NULL` as the parameter.
 
 ## "BrowserMainLoop" class
-`content/browser/browser_main_loop.cc` 
+File: `content/browser/browser_main_loop.cc` 
 
-`void BrowserMainLoop::Init()`
+Method: `void BrowserMainLoop::Init()` 
+Statement: `parts_.reset(GetContentClient()->browser()->CreateBrowserMainParts(parameters_));`
+Definition of `parts_`: `#include "content/browser/browser_main_loop.h"` `scoped_ptr<BrowserMainParts> parts_;`
 
-The variable `parts_` is set to `GetContentClient()->browser()->CreateBrowserMainParts(parameters_)` via the `reset` method.
-
-`void BrowserMainLoop::RunMainMessageLoopParts()`
-
+Method: `void BrowserMainLoop::RunMainMessageLoopParts()`
+Statement: `parts_->MainMessageLoopRun(&result_code_)`
+Description:
 A boolean value `ran_main_loop` is used to keep check if the main loop has finished running. The method creates a loop by calling the method itself, as long as `ran_main_loop` variable is set to false.
 
-`parts_->MainMessageLoopRun(&result_code_)`
+## ContentClient
+File: `content/public/common/content_client.cc`
 
 ## Obligatory License 
 
