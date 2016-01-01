@@ -159,7 +159,7 @@ We're heading towards code that deals with the execution of a single iteration o
 
 Method: `bool MessageLoop::DoWork()`
 
-Method: `void MessageLoop::RunTask(const PendingTask& pending_task) { DCHECK(nestable_tasks_allowed_);`
+Method: `void MessageLoop::RunTask(const PendingTask& pending_task)`
 
 ## Obligatory License 
 
