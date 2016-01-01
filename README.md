@@ -62,10 +62,12 @@ In the respective header file, within the class `ContentClient` the method `brow
 
 `ContentBrowserClient* browser() { return browser_; }`
 
-## BrowserMainParts
+## Class BrowserMainParts
 File: `content/public/browser/browser_main_parts.cc`
 
-Method: `BrowserMainParts::MainMessageLoopRun(int* result_code)` 
+Method: `bool BrowserMainParts::MainMessageLoopRun(int* result_code)` 
+
+Statement: `return false;`
 
 Description:
 This method simply returns false. This is confusing as to how the method eventually returns true. Perhaps it's overrided at some point?
