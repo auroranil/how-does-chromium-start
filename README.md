@@ -54,6 +54,15 @@ Statement: `parts_->MainMessageLoopRun(&result_code_)`
 Description:
 A boolean value `ran_main_loop` is used to keep check if the main loop has finished running. The method creates a loop by calling the method itself, as long as `ran_main_loop` variable is set to false.
 
+Method: `void BrowserMainLoop::MainMessageLoopRun()`
+
+Statements: `base::RunLoop run_loop; run_loop.Run();`
+
+Description:
+[wip]
+
+(skip to section "Class RunLoop" if you are not interested in the `parts_` variable)
+
 ## Class ContentClient
 File: `content/public/common/content_client.cc`
 
@@ -70,8 +79,33 @@ Method: `bool BrowserMainParts::MainMessageLoopRun(int* result_code)`
 Statement: `return false;`
 
 Description:
-This method simply returns false. This is confusing as to how the method eventually returns true. Perhaps it's overrided at some point?
+This method simply returns false. Assuming this is the default implementation of a browser main part, it can be overridden.
 
+## Class RunLoop
+
+File: `base/run_loop.cc`
+
+Method: `void RunLoop::Run()`
+
+Method description:
+[wip]
+
+Statement: `loop_->RunHandler();`
+Definition of `loop_` in class: `loop_(MessageLoop::current())`
+
+Statement description:
+[wip]
+
+## Class MessageLoop
+File: `base/message_loop/message_loop.cc`
+
+Definition (in respective header file): `scoped_ptr<MessagePump> pump_;`
+
+## Class MessagePump
+
+File: `base/message_loop/message_pump*.cc`
+
+This class is platform specific. [wip]
 
 ## Obligatory License 
 
