@@ -99,6 +99,10 @@ Statement description:
 ## Class MessageLoop
 File: `base/message_loop/message_loop.cc`
 
+Method: `void MessageLoop::RunHandler()`
+
+Statement: `pump_->Run(this);`
+
 Definition (in respective header file): `scoped_ptr<MessagePump> pump_;`
 
 ## Class MessagePump
