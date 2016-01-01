@@ -131,7 +131,35 @@ Definition (in respective header file): `scoped_ptr<MessagePump> pump_;`
 
 File: `base/message_loop/message_pump*.cc`
 
-This class is platform specific. Perhaps the reason for this is that `MessagePump` isolates platform specific code from `MessageLoop`, even though these two classes are quite dependant on each other. [wip]
+This class is platform specific. Perhaps the reason for this is that `MessagePump` isolates platform specific code from `MessageLoop`, even though these two classes are quite dependant on each other.
+
+Method: `void MessagePumpDefault::Run(Delegate* delegate)` (from `message_pump_default.cc`)
+
+We're heading towards code that deals with the execution of a single iteration of a loop. 
+
+    bool did_work = delegate->DoWork();
+    if (!keep_running_)
+      break;
+
+    did_work |= delegate->DoDelayedWork(&delayed_work_time_);
+    if (!keep_running_)
+      break;
+
+    if (did_work)
+      continue;
+
+    did_work = delegate->DoIdleWork();
+    if (!keep_running_)
+      break;
+
+    if (did_work)
+      continue;
+
+## Class MessageLoop (again)
+
+Method: `bool MessageLoop::DoWork()`
+
+Method: `void MessageLoop::RunTask(const PendingTask& pending_task) { DCHECK(nestable_tasks_allowed_);`
 
 ## Obligatory License 
 
