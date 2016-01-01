@@ -122,6 +122,9 @@ Method: `void MessageLoop::RunHandler()`
 
 Statement: `pump_->Run(this);`
 
+Description:
+The run method passes an instance of `MessageLoop` itself, which is used to call other methods within the same class in the `pump_` instance of the `MessagePump` class.
+
 Definition (in respective header file): `scoped_ptr<MessagePump> pump_;`
 
 ## Class MessagePump
