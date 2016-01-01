@@ -36,7 +36,7 @@ Once instantiated, the following methods perform the following actions:
 * `BrowserMainRunnerImpl::Initialize` initialises `BrowserMainLoop` and stores it in the `main_loop` variable.
 * `BrowserMainRunnerImpl::Run` runs the browser loop via the call `main_loop_->RunMainMessageLoopParts()`
 * `BrowserMainRunnerImpl::Shutdown` calls `main_loop_->ShutdownThreadsAndCleanUp()`, and deassigns pointers to various variables by calling their `reset` methods with `NULL` as the parameter.
-* 
+
 ## "BrowserMainLoop" class
 `content/browser/browser_main_loop.cc` 
 
