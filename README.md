@@ -10,7 +10,7 @@ Mac: `chrome/app/chrome_exe_main_mac.cc` `int main(int argc, char* argv[])`
 
 Linux/other: `chrome/app/chrome_exe_main_aura.cc` `int main(int argc, const char** argv)`
 
-## "ChromeMain" function
+## Function ChromeMain
 `chrome/app/chrome_main.cc`
 
 Windows: `DLLEXPORT int __cdecl ChromeMain(HINSTANCE instance, sandbox::SandboxInterfaceInfo* sandbox_info)`
@@ -25,7 +25,7 @@ Arguments are delegated into the `params` variable. As we are still in the early
 * Runs browser by calling `BrowserMainRunnerImpl::Run` method.
 * Once the exit value is returned, `BrowserMainRunnerImpl::Shutdown` is called to shut down the browser, and this exit value is then returned by `ContentMain` function itself.
 
-## "BrowserMainRunnerImpl" class
+## Class BrowserMainRunnerImpl
 `content/browser/browser_main_runner.cc` 
 
 Note: `BrowserMainRunnerImpl` is a derived class of `BrowserMainRunner`. The methods `BrowserMainRunnerImpl::Initialize`, `BrowserMainRunnerImpl::Run` and `BrowserMainRunnerImpl::Shutdown` are virtual methods with the `OVERRIDE` keyword at the end of the method declaration line.
@@ -37,7 +37,7 @@ Once instantiated, the following methods perform the following actions:
 * `BrowserMainRunnerImpl::Run` runs the browser loop via the call `main_loop_->RunMainMessageLoopParts()`
 * `BrowserMainRunnerImpl::Shutdown` calls `main_loop_->ShutdownThreadsAndCleanUp()`, and deassigns pointers to various variables by calling their `reset` methods with `NULL` as the parameter.
 
-## "BrowserMainLoop" class
+## Class BrowserMainLoop
 File: `content/browser/browser_main_loop.cc` 
 
 
@@ -54,9 +54,13 @@ Statement: `parts_->MainMessageLoopRun(&result_code_)`
 Description:
 A boolean value `ran_main_loop` is used to keep check if the main loop has finished running. The method creates a loop by calling the method itself, as long as `ran_main_loop` variable is set to false.
 
-## ContentClient
+## Class ContentClient
 File: `content/public/common/content_client.cc`
 
+
+In the respective header file, within the class `ContentClient` the method `browser()` is defined.
+
+`ContentBrowserClient* browser() { return browser_; }`
 
 ## Obligatory License 
 
