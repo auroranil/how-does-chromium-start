@@ -131,7 +131,7 @@ Definition (in respective header file): `scoped_ptr<MessagePump> pump_;`
 
 File: `base/message_loop/message_pump*.cc`
 
-This class is platform specific. [wip]
+This class is platform specific. Perhaps the reason for this is that `MessagePump` isolates platform specific code from `MessageLoop`, even though these two classes are quite dependant on each other. [wip]
 
 ## Obligatory License 
 
