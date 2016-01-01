@@ -18,7 +18,7 @@ Windows: `DLLEXPORT int __cdecl ChromeMain(HINSTANCE instance, sandbox::SandboxI
 POSIX: `int ChromeMain(int argc, const char** argv)`
 
 Arguments are delegated into the `params` variable. As we are still in the early initialisation process, `ChromeMain` function still has to deal on a platform-by-platform case basis. 
-## "ContentMain" function
+## Function ContentMain
 `content/app/content_main.cc` `int ContentMain(const ContentMainParams& params)`
 * Uses a scoped pointer (defined in `base/memory/scoped_ptr.h`) to store the return value of `BrowserMainRunner::Create`.
 * Initialises browser by calling `BrowserMainRunnerImpl::Initialize` method.
@@ -61,6 +61,15 @@ File: `content/public/common/content_client.cc`
 In the respective header file, within the class `ContentClient` the method `browser()` is defined.
 
 `ContentBrowserClient* browser() { return browser_; }`
+
+## BrowserMainParts
+File: `content/public/browser/browser_main_parts.cc`
+
+Method: `BrowserMainParts::MainMessageLoopRun(int* result_code)` 
+
+Description:
+This method simply returns false. This is confusing as to how the method eventually returns true. Perhaps it's overrided at some point?
+
 
 ## Obligatory License 
 
