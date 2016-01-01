@@ -1,6 +1,8 @@
 # How does Chromium start?
 Just me learning how chromium starts running its program by exploring the git repository. Please correct me if I get it wrong somewhere throughout this document (I still need to learn more about C and C++).
 
+It's [basically this](https://www.chromium.org/developers/design-documents/startup), except in more detail.
+
 ## Cross platform entry points
 As chromium runs on various platforms, there are entry points for each type of operating system there are. For Windows and Mac, there are wrapper functions within the entry point files.
 
