@@ -101,6 +101,23 @@ Statement description:
 ## Class MessageLoop
 File: `base/message_loop/message_loop.cc`
 
+Platform specific include relevant to discussion:
+
+    #include "base/message_loop/message_pump_default.h"
+    // ...
+    #if defined(OS_MACOSX)
+    #include "base/message_loop/message_pump_mac.h"
+    #endif
+    #if defined(OS_POSIX) && !defined(OS_IOS)
+    #include "base/message_loop/message_pump_libevent.h"
+    #endif
+    #if defined(OS_ANDROID)
+    #include "base/message_loop/message_pump_android.h"
+    #endif
+    #if defined(USE_GLIB)
+    #include "base/message_loop/message_pump_glib.h"
+    #endif
+
 Method: `void MessageLoop::RunHandler()`
 
 Statement: `pump_->Run(this);`
