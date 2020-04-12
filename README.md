@@ -1,49 +1,134 @@
 # How does Chromium start?
-Just me learning how chromium starts running its program by exploring the git repository. Please correct me if I get it wrong somewhere throughout this document (I still need to learn more about C and C++).
 
-It's [basically this](https://www.chromium.org/developers/design-documents/startup), except in more detail.
+This is my own notes of me learning how [chromium](https://github.com/chromium/chromium) starts running its program, by exploring the git repository. As of 2020, Chrome is the most popular used browser out of all, so it would be quite interesting to see how the internals work.
+
+It's [basically this](https://chromium.googlesource.com/chromium/src/+/master/docs/design/startup.md), except in more detail.
+
+Please correct me if I get it wrong somewhere throughout this document (I still need to learn more about C and C++).
 
 ## Cross platform entry points
+
 As chromium runs on various platforms, there are entry points for each type of operating system there are. For Windows and Mac, there are wrapper functions within the entry point files.
 
-Windows: `chrome/app/chrome_exe_main_win.cc` `int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE prev, wchar_t*, int)`
+| OS          | File                                 | Entry-level function                                                       |
+| ----------- | ------------------------------------ | -------------------------------------------------------------------------- |
+| Windows     | `chrome/app/chrome_exe_main_win.cc`  | `int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE prev, wchar_t*, int)` |
+| Mac         | `chrome/app/chrome_exe_main_mac.cc`  | `int main(int argc, char* argv[])`                                         |
+| Linux/other | `chrome/app/chrome_exe_main_aura.cc` | `int main(int argc, const char** argv)`                                    |
 
-Mac: `chrome/app/chrome_exe_main_mac.cc` `int main(int argc, char* argv[])`
+In all these files, they all invoke the function ChromeMain.
 
-Linux/other: `chrome/app/chrome_exe_main_aura.cc` `int main(int argc, const char** argv)`
+### Windows platform
+
+In Windows platform, the crash reporter is first initialised, and a function is called to cause Chrome to terminate should out of memory error occur.
+
+#### `chrome/app/chrome_exe_main_win.cc`
+
+```c++
+const base::TimeTicks exe_entry_point_ticks = base::TimeTicks::Now();
+// ...
+MainDllLoader* loader = MakeMainDllLoader();
+int rc = loader->Launch(instance, exe_entry_point_ticks);
+```
+
+#### `chrome/app/main_dll_loader_win.cc`
+
+```c++
+MainDllLoader* MakeMainDllLoader() {
+#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+  return new ChromeDllLoader();
+#else
+  return new ChromiumDllLoader();
+#endif
+}
+```
+
+This applies Chrome branding if the build flag has been set.
+
+#### `chrome/app/main_dll_loader_win.h`
+
+```c++
+class MainDllLoader {
+ public:
+  MainDllLoader();
+  virtual ~MainDllLoader();
+  int Launch(HINSTANCE instance, base::TimeTicks exe_entry_point_ticks);
+  void RelaunchChromeBrowserWithNewCommandLineIfNeeded();
+ protected:
+  virtual void OnBeforeLaunch(const base::CommandLine& cmd_line,
+                              const std::string& process_type,
+                              const base::FilePath& dll_path) = 0;
+
+ private:
+  HMODULE Load(base::FilePath* module);
+  HMODULE dll_;
+  std::string process_type_;
+};
+```
+
+### Mac platform
+
+### Linux platform
 
 ## Function ChromeMain
-`chrome/app/chrome_main.cc`
 
-Windows: `DLLEXPORT int __cdecl ChromeMain(HINSTANCE instance, sandbox::SandboxInterfaceInfo* sandbox_info)`
+#### `chrome/app/chrome_main.cc`
 
-POSIX: `int ChromeMain(int argc, const char** argv)`
+```c++
+#if defined(OS_WIN)
+#include "base/debug/dump_without_crashing.h"
+#include "base/win/win_util.h"
+#include "chrome/chrome_elf/chrome_elf_main.h"
+#include "chrome/common/chrome_constants.h"
+#include "chrome/install_static/initialize_from_primary_module.h"
+#include "chrome/install_static/install_details.h"
 
-Arguments are delegated into the `params` variable. As we are still in the early initialisation process, `ChromeMain` function still has to deal on a platform-by-platform case basis. 
+#define DLLEXPORT __declspec(dllexport)
+
+// We use extern C for the prototype DLLEXPORT to avoid C++ name mangling.
+extern "C" {
+DLLEXPORT int __cdecl ChromeMain(HINSTANCE instance,
+                                 sandbox::SandboxInterfaceInfo* sandbox_info,
+                                 int64_t exe_entry_point_ticks);
+}
+#elif defined(OS_POSIX)
+extern "C" {
+__attribute__((visibility("default")))
+int ChromeMain(int argc, const char** argv);
+}
+#endif
+```
+
+The arguments provided by the command line are passed to this function. As we are still in the early initialisation process, `ChromeMain` function still has to deal on a platform-by-platform case basis. This is done by using control preprocessor directives such as `#if defined(OS_WIN)` and `#elif defined(OS_POSIX)`.
+
 ## Function ContentMain
+
 `content/app/content_main.cc` `int ContentMain(const ContentMainParams& params)`
-* Uses a scoped pointer (defined in `base/memory/scoped_ptr.h`) to store the return value of `BrowserMainRunner::Create`.
-* Initialises browser by calling `BrowserMainRunnerImpl::Initialize` method.
-* Runs browser by calling `BrowserMainRunnerImpl::Run` method.
-* Once the exit value is returned, `BrowserMainRunnerImpl::Shutdown` is called to shut down the browser, and this exit value is then returned by `ContentMain` function itself.
+
+-   Uses a scoped pointer (defined in `base/memory/scoped_ptr.h`) to store the return value of `BrowserMainRunner::Create`.
+-   Initialises browser by calling `BrowserMainRunnerImpl::Initialize` method.
+-   Runs browser by calling `BrowserMainRunnerImpl::Run` method.
+-   Once the exit value is returned, `BrowserMainRunnerImpl::Shutdown` is called to shut down the browser, and this exit value is then returned by `ContentMain` function itself.
 
 ## Class BrowserMainRunnerImpl
-`content/browser/browser_main_runner.cc` 
+
+`content/browser/browser_main_runner.cc`
 
 Note: `BrowserMainRunnerImpl` is a derived class of `BrowserMainRunner`. The methods `BrowserMainRunnerImpl::Initialize`, `BrowserMainRunnerImpl::Run` and `BrowserMainRunnerImpl::Shutdown` are virtual methods with the `OVERRIDE` keyword at the end of the method declaration line.
 
 `BrowserMainRunner* BrowserMainRunner::Create()` creates a new `BrowserMainRunnerImpl` instance.
 
 Once instantiated, the following methods perform the following actions:
-* `BrowserMainRunnerImpl::Initialize` initialises `BrowserMainLoop` and stores it in the `main_loop` variable.
-* `BrowserMainRunnerImpl::Run` runs the browser loop via the call `main_loop_->RunMainMessageLoopParts()`
-* `BrowserMainRunnerImpl::Shutdown` calls `main_loop_->ShutdownThreadsAndCleanUp()`, and deassigns pointers to various variables by calling their `reset` methods with `NULL` as the parameter.
+
+-   `BrowserMainRunnerImpl::Initialize` initialises `BrowserMainLoop` and stores it in the `main_loop` variable.
+-   `BrowserMainRunnerImpl::Run` runs the browser loop via the call `main_loop_->RunMainMessageLoopParts()`
+-   `BrowserMainRunnerImpl::Shutdown` calls `main_loop_->ShutdownThreadsAndCleanUp()`, and deassigns pointers to various variables by calling their `reset` methods with `NULL` as the parameter.
 
 ## Class BrowserMainLoop
-File: `content/browser/browser_main_loop.cc` 
 
+File: `content/browser/browser_main_loop.cc`
 
-Method: `void BrowserMainLoop::Init()` 
+Method: `void BrowserMainLoop::Init()`
 
 Statement: `parts_.reset(GetContentClient()->browser()->CreateBrowserMainParts(parameters_));`
 
@@ -66,17 +151,18 @@ Description:
 (skip to section "Class RunLoop" if you are not interested in the `parts_` variable)
 
 ## Class ContentClient
-File: `content/public/common/content_client.cc`
 
+File: `content/public/common/content_client.cc`
 
 In the respective header file, within the class `ContentClient` the method `browser()` is defined.
 
 `ContentBrowserClient* browser() { return browser_; }`
 
 ## Class BrowserMainParts
+
 File: `content/public/browser/browser_main_parts.cc`
 
-Method: `bool BrowserMainParts::MainMessageLoopRun(int* result_code)` 
+Method: `bool BrowserMainParts::MainMessageLoopRun(int* result_code)`
 
 Statement: `return false;`
 
@@ -99,6 +185,7 @@ Statement description:
 [wip]
 
 ## Class MessageLoop
+
 File: `base/message_loop/message_loop.cc`
 
 Platform specific include relevant to discussion:
@@ -135,7 +222,7 @@ This class is platform specific. Perhaps the reason for this is that `MessagePum
 
 Method: `void MessagePumpDefault::Run(Delegate* delegate)` (from `message_pump_default.cc`)
 
-We're heading towards code that deals with the execution of a single iteration of a loop. 
+We're heading towards code that deals with the execution of a single iteration of a loop.
 
     bool did_work = delegate->DoWork();
     if (!keep_running_)
@@ -161,7 +248,7 @@ Method: `bool MessageLoop::DoWork()`
 
 Method: `void MessageLoop::RunTask(const PendingTask& pending_task)`
 
-## Obligatory License 
+## Obligatory License
 
     // Copyright 2015 The Chromium Authors. All rights reserved.
     //
