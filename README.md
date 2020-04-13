@@ -156,7 +156,7 @@ int ContentMain(const ContentMainParams& params) {
 }
 ```
 
-### Function `service_manager::Main`
+## Function `service_manager::Main`
 
 #### `services/service_manager/embedder/main.cc`
 
@@ -168,6 +168,18 @@ int Main(const MainParams& params) {
   // ...
   ProcessType process_type = delegate->OverrideProcessType();
   // ...
+  const auto& command_line = *base::CommandLine::ForCurrentProcess();
+  if (process_type == ProcessType::kDefault) {
+    std::string type_switch =
+        command_line.GetSwitchValueASCII(switches::kProcessType);
+    if (type_switch == switches::kProcessTypeServiceManager) {
+      process_type = ProcessType::kServiceManager;
+    } else if (type_switch == switches::kProcessTypeService) {
+      process_type = ProcessType::kService;
+    } else {
+      process_type = ProcessType::kEmbedder;
+    }
+  }
   switch (process_type) {
     case ProcessType::kDefault:
       NOTREACHED();
@@ -190,6 +202,28 @@ int Main(const MainParams& params) {
   }
   // ...
   return exit_code;
+}
+```
+
+## Function `RunLoop::Run`
+
+#### `base/run_loop.cc`
+
+```c++
+void RunLoop::Run() {
+  // ...
+
+  if (!BeforeRun())
+    return;
+
+  // ...
+
+  const bool application_tasks_allowed =
+      delegate_->active_run_loops_.size() == 1U ||
+      type_ == Type::kNestableTasksAllowed;
+  delegate_->Run(application_tasks_allowed, TimeDelta::Max());
+
+  AfterRun();
 }
 ```
 
