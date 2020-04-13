@@ -20,55 +20,75 @@ In all these files, they all invoke the function ChromeMain.
 
 ### Windows platform
 
-In Windows platform, the crash reporter is first initialised, and a function is called to cause Chrome to terminate should out of memory error occur.
-
 #### `chrome/app/chrome_exe_main_win.cc`
 
 ```c++
-const base::TimeTicks exe_entry_point_ticks = base::TimeTicks::Now();
-// ...
-MainDllLoader* loader = MakeMainDllLoader();
-int rc = loader->Launch(instance, exe_entry_point_ticks);
+#if !defined(WIN_CONSOLE_APP)
+int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE prev, wchar_t*, int) {
+#else
+int main() {
+  HINSTANCE instance = GetModuleHandle(nullptr);
+#endif
+  // ...
+  const base::TimeTicks exe_entry_point_ticks = base::TimeTicks::Now();
+  // ...
+  MainDllLoader* loader = MakeMainDllLoader();
+  int rc = loader->Launch(instance, exe_entry_point_ticks);
+  // ...
+}
+
 ```
 
 #### `chrome/app/main_dll_loader_win.cc`
 
 ```c++
-MainDllLoader* MakeMainDllLoader() {
-#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
-  return new ChromeDllLoader();
-#else
-  return new ChromiumDllLoader();
-#endif
+int MainDllLoader::Launch(HINSTANCE instance,
+                          base::TimeTicks exe_entry_point_ticks) {
+  // ...
+  DLL_MAIN chrome_main =
+  reinterpret_cast<DLL_MAIN>(::GetProcAddress(dll_, "ChromeMain"));
+  int rc = chrome_main(instance, &sandbox_info,
+                       exe_entry_point_ticks.ToInternalValue());
+  // ...
 }
-```
-
-This applies Chrome branding if the build flag has been set.
-
-#### `chrome/app/main_dll_loader_win.h`
-
-```c++
-class MainDllLoader {
- public:
-  MainDllLoader();
-  virtual ~MainDllLoader();
-  int Launch(HINSTANCE instance, base::TimeTicks exe_entry_point_ticks);
-  void RelaunchChromeBrowserWithNewCommandLineIfNeeded();
- protected:
-  virtual void OnBeforeLaunch(const base::CommandLine& cmd_line,
-                              const std::string& process_type,
-                              const base::FilePath& dll_path) = 0;
-
- private:
-  HMODULE Load(base::FilePath* module);
-  HMODULE dll_;
-  std::string process_type_;
-};
 ```
 
 ### Mac platform
 
+#### `chrome/app/chrome_exe_main_mac.cc`
+
+```c++
+__attribute__((visibility("default"))) int main(int argc, char* argv[]) {
+  // ...
+  void* library =
+    dlopen(framework_path.get(), RTLD_LAZY | RTLD_LOCAL | RTLD_FIRST);
+  if (!library) {
+    FatalError("dlopen %s: %s.", framework_path.get(), dlerror());
+  }
+
+  const ChromeMainPtr chrome_main =
+    reinterpret_cast<ChromeMainPtr>(dlsym(library, "ChromeMain"));
+  if (!chrome_main) {
+    FatalError("dlsym ChromeMain: %s.", dlerror());
+  }
+  rv = chrome_main(argc, argv);
+  // ...
+}
+```
+
 ### Linux platform
+
+#### `chrome/app/chrome_exe_main_aura.cc`
+
+```c++
+extern "C" {
+int ChromeMain(int argc, const char** argv);
+}
+
+int main(int argc, const char** argv) {
+  return ChromeMain(argc, argv);
+}
+```
 
 ## Function ChromeMain
 
@@ -101,9 +121,34 @@ int ChromeMain(int argc, const char** argv);
 
 The arguments provided by the command line are passed to this function. As we are still in the early initialisation process, `ChromeMain` function still has to deal on a platform-by-platform case basis. This is done by using control preprocessor directives such as `#if defined(OS_WIN)` and `#elif defined(OS_POSIX)`.
 
+```c++
+#if defined(OS_WIN)
+DLLEXPORT int __cdecl ChromeMain(HINSTANCE instance,
+                                 sandbox::SandboxInterfaceInfo* sandbox_info,
+                                 int64_t exe_entry_point_ticks) {
+#elif defined(OS_POSIX)
+int ChromeMain(int argc, const char** argv) {
+  int64_t exe_entry_point_ticks = 0;
+#endif
+  // ...
+  ChromeMainDelegate chrome_main_delegate(
+      base::TimeTicks::FromInternalValue(exe_entry_point_ticks));
+  content::ContentMainParams params(&chrome_main_delegate);
+  // populate params variable with parameters...
+  int rv = content::ContentMain(params);
+  return rv;
+}
+```
+
 ## Function ContentMain
 
-`content/app/content_main.cc` `int ContentMain(const ContentMainParams& params)`
+#### `content/app/content_main.cc`
+
+```c++
+int ContentMain(const ContentMainParams& params) {
+
+}
+```
 
 -   Uses a scoped pointer (defined in `base/memory/scoped_ptr.h`) to store the return value of `BrowserMainRunner::Create`.
 -   Initialises browser by calling `BrowserMainRunnerImpl::Initialize` method.
