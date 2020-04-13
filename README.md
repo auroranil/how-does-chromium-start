@@ -90,7 +90,7 @@ int main(int argc, const char** argv) {
 }
 ```
 
-## Function ChromeMain
+## Function `ChromeMain`
 
 #### `chrome/app/chrome_main.cc`
 
@@ -140,158 +140,58 @@ int ChromeMain(int argc, const char** argv) {
 }
 ```
 
-## Function ContentMain
+## Function `ContentMain`
 
 #### `content/app/content_main.cc`
 
 ```c++
 int ContentMain(const ContentMainParams& params) {
-
+  ContentServiceManagerMainDelegate delegate(params);
+  service_manager::MainParams main_params(&delegate);
+#if !defined(OS_WIN) && !defined(OS_ANDROID)
+  main_params.argc = params.argc;
+  main_params.argv = params.argv;
+#endif
+  return service_manager::Main(main_params);
 }
 ```
 
--   Uses a scoped pointer (defined in `base/memory/scoped_ptr.h`) to store the return value of `BrowserMainRunner::Create`.
--   Initialises browser by calling `BrowserMainRunnerImpl::Initialize` method.
--   Runs browser by calling `BrowserMainRunnerImpl::Run` method.
--   Once the exit value is returned, `BrowserMainRunnerImpl::Shutdown` is called to shut down the browser, and this exit value is then returned by `ContentMain` function itself.
+### Function `service_manager::Main`
 
-## Class BrowserMainRunnerImpl
+#### `services/service_manager/embedder/main.cc`
 
-`content/browser/browser_main_runner.cc`
-
-Note: `BrowserMainRunnerImpl` is a derived class of `BrowserMainRunner`. The methods `BrowserMainRunnerImpl::Initialize`, `BrowserMainRunnerImpl::Run` and `BrowserMainRunnerImpl::Shutdown` are virtual methods with the `OVERRIDE` keyword at the end of the method declaration line.
-
-`BrowserMainRunner* BrowserMainRunner::Create()` creates a new `BrowserMainRunnerImpl` instance.
-
-Once instantiated, the following methods perform the following actions:
-
--   `BrowserMainRunnerImpl::Initialize` initialises `BrowserMainLoop` and stores it in the `main_loop` variable.
--   `BrowserMainRunnerImpl::Run` runs the browser loop via the call `main_loop_->RunMainMessageLoopParts()`
--   `BrowserMainRunnerImpl::Shutdown` calls `main_loop_->ShutdownThreadsAndCleanUp()`, and deassigns pointers to various variables by calling their `reset` methods with `NULL` as the parameter.
-
-## Class BrowserMainLoop
-
-File: `content/browser/browser_main_loop.cc`
-
-Method: `void BrowserMainLoop::Init()`
-
-Statement: `parts_.reset(GetContentClient()->browser()->CreateBrowserMainParts(parameters_));`
-
-Definition of `parts_`: `#include "content/browser/browser_main_loop.h"` `scoped_ptr<BrowserMainParts> parts_;`
-
-Method: `void BrowserMainLoop::RunMainMessageLoopParts()`
-
-Statement: `parts_->MainMessageLoopRun(&result_code_)`
-
-Description:
-A boolean value `ran_main_loop` is used to keep check if the main loop has finished running. The method creates a loop by calling the method itself, as long as `ran_main_loop` variable is set to false.
-
-Method: `void BrowserMainLoop::MainMessageLoopRun()`
-
-Statements: `base::RunLoop run_loop; run_loop.Run();`
-
-Description:
-[wip]
-
-(skip to section "Class RunLoop" if you are not interested in the `parts_` variable)
-
-## Class ContentClient
-
-File: `content/public/common/content_client.cc`
-
-In the respective header file, within the class `ContentClient` the method `browser()` is defined.
-
-`ContentBrowserClient* browser() { return browser_; }`
-
-## Class BrowserMainParts
-
-File: `content/public/browser/browser_main_parts.cc`
-
-Method: `bool BrowserMainParts::MainMessageLoopRun(int* result_code)`
-
-Statement: `return false;`
-
-Description:
-This method simply returns false. Assuming this is the default implementation of a browser main part, it can be overridden.
-
-## Class RunLoop
-
-File: `base/run_loop.cc`
-
-Method: `void RunLoop::Run()`
-
-Method description:
-[wip]
-
-Statement: `loop_->RunHandler();`
-Definition of `loop_` in class: `loop_(MessageLoop::current())`
-
-Statement description:
-[wip]
-
-## Class MessageLoop
-
-File: `base/message_loop/message_loop.cc`
-
-Platform specific include relevant to discussion:
-
-    #include "base/message_loop/message_pump_default.h"
-    // ...
-    #if defined(OS_MACOSX)
-    #include "base/message_loop/message_pump_mac.h"
-    #endif
-    #if defined(OS_POSIX) && !defined(OS_IOS)
-    #include "base/message_loop/message_pump_libevent.h"
-    #endif
-    #if defined(OS_ANDROID)
-    #include "base/message_loop/message_pump_android.h"
-    #endif
-    #if defined(USE_GLIB)
-    #include "base/message_loop/message_pump_glib.h"
-    #endif
-
-Method: `void MessageLoop::RunHandler()`
-
-Statement: `pump_->Run(this);`
-
-Description:
-The run method passes an instance of `MessageLoop` itself, which is used to call other methods within the same class in the `pump_` instance of the `MessagePump` class.
-
-Definition (in respective header file): `scoped_ptr<MessagePump> pump_;`
-
-## Class MessagePump
-
-File: `base/message_loop/message_pump*.cc`
-
-This class is platform specific. Perhaps the reason for this is that `MessagePump` isolates platform specific code from `MessageLoop`, even though these two classes are quite dependant on each other.
-
-Method: `void MessagePumpDefault::Run(Delegate* delegate)` (from `message_pump_default.cc`)
-
-We're heading towards code that deals with the execution of a single iteration of a loop.
-
-    bool did_work = delegate->DoWork();
-    if (!keep_running_)
+```c++
+int Main(const MainParams& params) {
+  MainDelegate* delegate = params.delegate;
+  // ...
+  int exit_code = -1;
+  // ...
+  ProcessType process_type = delegate->OverrideProcessType();
+  // ...
+  switch (process_type) {
+    case ProcessType::kDefault:
+      NOTREACHED();
       break;
 
-    did_work |= delegate->DoDelayedWork(&delayed_work_time_);
-    if (!keep_running_)
+    case ProcessType::kServiceManager:
+      exit_code = RunServiceManager(delegate);
       break;
 
-    if (did_work)
-      continue;
-
-    did_work = delegate->DoIdleWork();
-    if (!keep_running_)
+    case ProcessType::kService:
+      CommonSubprocessInit();
+      exit_code = RunService(delegate);
       break;
 
-    if (did_work)
-      continue;
-
-## Class MessageLoop (again)
-
-Method: `bool MessageLoop::DoWork()`
-
-Method: `void MessageLoop::RunTask(const PendingTask& pending_task)`
+    case ProcessType::kEmbedder:
+      if (delegate->IsEmbedderSubprocess())
+        CommonSubprocessInit();
+      exit_code = delegate->RunEmbedderProcess();
+      break;
+  }
+  // ...
+  return exit_code;
+}
+```
 
 ## Obligatory License
 
