@@ -20,7 +20,7 @@ In all these files, they all invoke the function ChromeMain.
 
 ### Windows platform
 
-#### `chrome/app/chrome_exe_main_win.cc`
+#### Year 2011: `chrome/app/chrome_exe_main_win.cc`
 
 ```c++
 #if !defined(WIN_CONSOLE_APP)
@@ -39,7 +39,7 @@ int main() {
 
 ```
 
-#### `chrome/app/main_dll_loader_win.cc`
+#### Year 2012: `chrome/app/main_dll_loader_win.cc`
 
 ```c++
 int MainDllLoader::Launch(HINSTANCE instance,
@@ -55,7 +55,7 @@ int MainDllLoader::Launch(HINSTANCE instance,
 
 ### Mac platform
 
-#### `chrome/app/chrome_exe_main_mac.cc`
+#### Year 2015: `chrome/app/chrome_exe_main_mac.cc`
 
 ```c++
 __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
@@ -78,7 +78,7 @@ __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
 
 ### Linux platform
 
-#### `chrome/app/chrome_exe_main_aura.cc`
+#### Year 2011: `chrome/app/chrome_exe_main_aura.cc`
 
 ```c++
 extern "C" {
@@ -92,7 +92,7 @@ int main(int argc, const char** argv) {
 
 ## Function `ChromeMain`
 
-#### `chrome/app/chrome_main.cc`
+#### Year 2012: `chrome/app/chrome_main.cc`
 
 ```c++
 #if defined(OS_WIN)
@@ -142,7 +142,7 @@ int ChromeMain(int argc, const char** argv) {
 
 ## Function `ContentMain`
 
-#### `content/app/content_main.cc`
+#### Year 2012: `content/app/content_main.cc`
 
 ```c++
 int ContentMain(const ContentMainParams& params) {
@@ -158,7 +158,7 @@ int ContentMain(const ContentMainParams& params) {
 
 ## Function `service_manager::Main`
 
-#### `services/service_manager/embedder/main.cc`
+#### Year 2017: `services/service_manager/embedder/main.cc`
 
 ```c++
 int Main(const MainParams& params) {
@@ -207,7 +207,7 @@ int Main(const MainParams& params) {
 
 ## Function `RunLoop::Run`
 
-#### `base/run_loop.cc`
+#### Year 2012: `base/run_loop.cc`
 
 ```c++
 void RunLoop::Run() {
