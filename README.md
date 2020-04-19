@@ -96,33 +96,6 @@ int main(int argc, const char** argv) {
 
 ```c++
 #if defined(OS_WIN)
-#include "base/debug/dump_without_crashing.h"
-#include "base/win/win_util.h"
-#include "chrome/chrome_elf/chrome_elf_main.h"
-#include "chrome/common/chrome_constants.h"
-#include "chrome/install_static/initialize_from_primary_module.h"
-#include "chrome/install_static/install_details.h"
-
-#define DLLEXPORT __declspec(dllexport)
-
-// We use extern C for the prototype DLLEXPORT to avoid C++ name mangling.
-extern "C" {
-DLLEXPORT int __cdecl ChromeMain(HINSTANCE instance,
-                                 sandbox::SandboxInterfaceInfo* sandbox_info,
-                                 int64_t exe_entry_point_ticks);
-}
-#elif defined(OS_POSIX)
-extern "C" {
-__attribute__((visibility("default")))
-int ChromeMain(int argc, const char** argv);
-}
-#endif
-```
-
-The arguments provided by the command line are passed to this function. As we are still in the early initialisation process, `ChromeMain` function still has to deal on a platform-by-platform case basis. This is done by using control preprocessor directives such as `#if defined(OS_WIN)` and `#elif defined(OS_POSIX)`.
-
-```c++
-#if defined(OS_WIN)
 DLLEXPORT int __cdecl ChromeMain(HINSTANCE instance,
                                  sandbox::SandboxInterfaceInfo* sandbox_info,
                                  int64_t exe_entry_point_ticks) {
@@ -140,7 +113,14 @@ int ChromeMain(int argc, const char** argv) {
 }
 ```
 
-## Function `ContentMain`
+We look at the implementation of `ChromeMain`, and we see that it invokes `content::ContentMain()`. The arguments provided by the command line are passed to this function.
+
+As we are still in the early initialisation process, `ChromeMain` function still has to deal on a platform-by-platform case basis. This is done by using control preprocessor directives such as `#if defined(OS_WIN)` and `#elif defined(OS_POSIX)`. These flags are defined in file [`build/build_config.h`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/build/build_config.h). We have a look at how `ChromeMain` works on a platform-by-platform case basis.
+
+-   We see that for the Windows platform, the arguments are `HINSTANCE instance`, `sandbox::SandboxInterfaceInfo* sandbox_info` and `int64_t exe_entry_point_ticks`.
+-   For POSIX platforms, the arguments are simply `int argc` and `const char** argv`.
+
+## Function `content::ContentMain`
 
 #### Year 2012: [`content/app/content_main.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/content/app/content_main.cc)
 
