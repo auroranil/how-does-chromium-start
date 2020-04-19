@@ -81,10 +81,6 @@ __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
 #### Year 2011: [`chrome/app/chrome_exe_main_aura.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/chrome/app/chrome_exe_main_aura.cc)
 
 ```c++
-extern "C" {
-int ChromeMain(int argc, const char** argv);
-}
-
 int main(int argc, const char** argv) {
   return ChromeMain(argc, argv);
 }
