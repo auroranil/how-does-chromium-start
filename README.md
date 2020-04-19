@@ -205,6 +205,14 @@ int Main(const MainParams& params) {
 }
 ```
 
+Notes:
+
+-   There are three process types: `ProcessType::kServiceManager`, `ProcessType::kService` and `ProcessType::kEmbedder`. `ProcessType::kDefault` is not really a process type, and we can see there is a `NOTREACHED()` macro in the switch case
+-   The `NOTREACHED()` macro is an assertion that will always fail, which happens when the `ProcessType::kDefault` case has been reached (see [this link](https://chromium.googlesource.com/chromium/src/+/master/styleguide/c++/c++.md#check_dcheck_and-notreached)).
+-   Service manager first checks to see if the process type has been overrided. If it hasn't, it checks the command line for a process type switch, and updates the process type accordingly.
+-   `switches::kProcessType` is equal to `"type"`
+-   `*base::CommandLine::ForCurrentProcess()` is a getter method
+
 ## Function `RunLoop::Run`
 
 #### Year 2012: `base/run_loop.cc`
