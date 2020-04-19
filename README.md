@@ -4,7 +4,7 @@ This is my own notes of me learning how [chromium](https://github.com/chromium/c
 
 It's [basically this](https://chromium.googlesource.com/chromium/src/+/master/docs/design/startup.md), except in more detail.
 
-Please correct me if I get it wrong somewhere throughout this document (I still need to learn more about C and C++).
+Please correct me if I get it wrong somewhere throughout this document (I still need to learn more about C and C++). I have checkout commit `4900686dee9aacdb5ac0a203acbef587c292e6fe`, which was pushed on Sunday 12th of April, 2020, at 08:20:43. All links to source files are based on this commit. All years specified before the filename refer to the year specified in the copyright comment at the beginning of each source file.
 
 ## Cross platform entry points
 
@@ -20,7 +20,7 @@ In all these files, they all invoke the function ChromeMain.
 
 ### Windows platform
 
-#### Year 2011: `chrome/app/chrome_exe_main_win.cc`
+#### Year 2011: [`chrome/app/chrome_exe_main_win.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/chrome/app/chrome_exe_main_win.cc)
 
 ```c++
 #if !defined(WIN_CONSOLE_APP)
@@ -39,7 +39,7 @@ int main() {
 
 ```
 
-#### Year 2012: `chrome/app/main_dll_loader_win.cc`
+#### Year 2012: [`chrome/app/main_dll_loader_win.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/chrome/app/main_dll_loader_win.cc)
 
 ```c++
 int MainDllLoader::Launch(HINSTANCE instance,
@@ -55,7 +55,7 @@ int MainDllLoader::Launch(HINSTANCE instance,
 
 ### Mac platform
 
-#### Year 2015: `chrome/app/chrome_exe_main_mac.cc`
+#### Year 2015: [`chrome/app/chrome_exe_main_mac.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/chrome/app/chrome_exe_main_mac.cc)
 
 ```c++
 __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
@@ -78,7 +78,7 @@ __attribute__((visibility("default"))) int main(int argc, char* argv[]) {
 
 ### Linux platform
 
-#### Year 2011: `chrome/app/chrome_exe_main_aura.cc`
+#### Year 2011: [`chrome/app/chrome_exe_main_aura.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/chrome/app/chrome_exe_main_aura.cc)
 
 ```c++
 extern "C" {
@@ -92,7 +92,7 @@ int main(int argc, const char** argv) {
 
 ## Function `ChromeMain`
 
-#### Year 2012: `chrome/app/chrome_main.cc`
+#### Year 2012: [`chrome/app/chrome_main.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/chrome/app/chrome_main.cc)
 
 ```c++
 #if defined(OS_WIN)
@@ -142,7 +142,7 @@ int ChromeMain(int argc, const char** argv) {
 
 ## Function `ContentMain`
 
-#### Year 2012: `content/app/content_main.cc`
+#### Year 2012: [`content/app/content_main.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/content/app/content_main.cc)
 
 ```c++
 int ContentMain(const ContentMainParams& params) {
@@ -158,7 +158,7 @@ int ContentMain(const ContentMainParams& params) {
 
 ## Function `service_manager::Main`
 
-#### Year 2017: `services/service_manager/embedder/main.cc`
+#### Year 2017: [`services/service_manager/embedder/main.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/services/service_manager/embedder/main.cc)
 
 ```c++
 int Main(const MainParams& params) {
@@ -215,7 +215,7 @@ Notes:
 
 ## Function `RunLoop::Run`
 
-#### Year 2012: `base/run_loop.cc`
+#### Year 2012: [`base/run_loop.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/base/run_loop.cc)
 
 ```c++
 void RunLoop::Run() {
