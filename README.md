@@ -231,6 +231,71 @@ Notes:
 -   `switches::kProcessType` is equal to `"type"`
 -   `*base::CommandLine::ForCurrentProcess()` is a getter method
 
+## Class `ContentServiceManagerMainDelegate`
+
+#### Year 2017: [`content/app/content_service_manager_main_delegate.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/content/app/content_service_manager_main_delegate.cc)
+
+```c++
+namespace content {
+
+ContentServiceManagerMainDelegate::ContentServiceManagerMainDelegate(
+    const ContentMainParams& params)
+    : content_main_params_(params),
+      content_main_runner_(ContentMainRunnerImpl::Create()) {}
+
+// ...
+
+int ContentServiceManagerMainDelegate::RunEmbedderProcess() {
+  return content_main_runner_->Run(start_service_manager_only_);
+}
+}
+```
+
+In the initialiser list within the constructor, we see that `ContentMainRunnerImpl::Create()` (which is a factory pattern) is executed, and gets stored in variable `content_main_runner_`. In the `RunEmbedderProcess()` function, we see that the run method from `content_main_runner_` is invoked.
+
+## Class `ContentMainRunnerImpl`
+
+#### Year 2012: [`content/app/content_main_runner_impl.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/content/app/content_main_runner_impl.cc)
+
+```c++
+int ContentMainRunnerImpl::Run(bool start_service_manager_only) {
+  DCHECK(is_initialized_);
+  DCHECK(!is_shutdown_);
+  const base::CommandLine& command_line =
+      *base::CommandLine::ForCurrentProcess();
+  std::string process_type =
+      command_line.GetSwitchValueASCII(switches::kProcessType);
+
+#if !defined(CHROME_MULTIPLE_DLL_BROWSER)
+  // Run this logic on all child processes. Zygotes will run this at a later
+  // point in time when the command line has been updated.
+  if (!process_type.empty() &&
+      process_type != service_manager::switches::kZygoteProcess) {
+    InitializeFieldTrialAndFeatureList();
+    delegate_->PostFieldTrialInitialization();
+  }
+#endif
+
+  MainFunctionParams main_params(command_line);
+  main_params.ui_task = ui_task_;
+  main_params.created_main_parts_closure = created_main_parts_closure_;
+#if defined(OS_WIN)
+  main_params.sandbox_info = &sandbox_info_;
+#elif defined(OS_MACOSX)
+  main_params.autorelease_pool = autorelease_pool_;
+#endif
+
+  RegisterMainThreadFactories();
+
+#if !defined(CHROME_MULTIPLE_DLL_CHILD)
+  if (process_type.empty())
+    return RunServiceManager(main_params, start_service_manager_only);
+#endif  // !defined(CHROME_MULTIPLE_DLL_CHILD)
+
+  return RunOtherNamedProcessTypeMain(process_type, main_params, delegate_);
+}
+```
+
 ## Function `RunLoop::Run`
 
 #### Year 2012: [`base/run_loop.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/base/run_loop.cc)
