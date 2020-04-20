@@ -62,6 +62,10 @@ int MainDllLoader::Launch(HINSTANCE instance,
 }
 ```
 
+Notes:
+
+-   [GetProcAddress](https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getprocaddress) is used to retrieve `ChromeMain` function from a [Dynamic Link Library (DLL)](https://en.wikipedia.org/wiki/Dynamic-link_library), and reinterprets it as `DLL_MAIN`, which is defined in an [unnamed namespace](https://en.cppreference.com/w/cpp/language/namespace#Unnamed_namespaces) as a [function pointer](https://en.wikipedia.org/wiki/Function_pointer).
+
 ### Mac platform
 
 #### Year 2015: [`chrome/app/chrome_exe_main_mac.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/chrome/app/chrome_exe_main_mac.cc)
