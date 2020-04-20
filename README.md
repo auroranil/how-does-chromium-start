@@ -377,11 +377,35 @@ void BrowserMainLoop::MainMessageLoopRun() {
 }
 ```
 
-## Function `RunLoop::Run`
+## Class `RunLoop`
 
 #### Year 2012: [`base/run_loop.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/base/run_loop.cc)
 
 ```c++
+namespace base {
+
+namespace {
+
+ThreadLocalPointer<RunLoop::Delegate>& GetTlsDelegate() {
+  static base::NoDestructor<ThreadLocalPointer<RunLoop::Delegate>> instance;
+  return *instance;
+}
+
+// ...
+}  // namespace
+// ...
+
+RunLoop::RunLoop(Type type)
+    : delegate_(GetTlsDelegate().Get()),
+      type_(type),
+      origin_task_runner_(ThreadTaskRunnerHandle::Get()) {
+  DCHECK(delegate_) << "A RunLoop::Delegate must be bound to this thread prior "
+                       "to using RunLoop.";
+  DCHECK(origin_task_runner_);
+}
+
+// ...
+
 void RunLoop::Run() {
   // ...
 
@@ -397,6 +421,8 @@ void RunLoop::Run() {
 
   AfterRun();
 }
+// ...
+}  // namespace base
 ```
 
 ## Obligatory License
