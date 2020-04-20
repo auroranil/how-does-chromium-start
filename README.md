@@ -117,12 +117,19 @@ int ChromeMain(int argc, const char** argv) {
       base::TimeTicks::FromInternalValue(exe_entry_point_ticks));
   content::ContentMainParams params(&chrome_main_delegate);
   // populate params variable with parameters...
+  #if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_WIN)
+  if (command_line->HasSwitch(switches::kHeadless)) {
+    return headless::HeadlessShellMain(params);
+  }
+  #endif  // defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_WIN)
+
   int rv = content::ContentMain(params);
+
   return rv;
 }
 ```
 
-We look at the implementation of `ChromeMain`, and we see that it invokes `content::ContentMain()`. The arguments provided by the command line are passed to this function.
+We look at the implementation of `ChromeMain`, and we see that it invokes `content::ContentMain()` (if Chromium was run with `--headless` flag set, then it would instead call `headless::HeadlessShellMain()`). The arguments provided by the command line are passed to this function.
 
 As we are still in the early initialisation process, `ChromeMain` function still has to deal on a platform-by-platform case basis. This is done by using control preprocessor directives such as `#if defined(OS_WIN)` and `#elif defined(OS_POSIX)`. These flags are defined in file [`build/build_config.h`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/build/build_config.h). We have a look at how `ChromeMain` works on a platform-by-platform case basis.
 
