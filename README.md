@@ -220,6 +220,8 @@ int Main(const MainParams& params) {
 }
 ```
 
+Since the line `delegate->OverrideProcessType()` returns `ProcessType::kDefault` (see `ChromeMainDelegate::OverrideProcessType` up above), it checks to see which process type it should set, based on the command line. Lets assume that no switches have been set. This means that it will select process type `ProcessType::kEmbedder`, and will execute the line `exit_code = delegate->RunEmbedderProcess();`.
+
 Notes:
 
 -   There are three process types: `ProcessType::kServiceManager`, `ProcessType::kService` and `ProcessType::kEmbedder`. `ProcessType::kDefault` is not really a process type, and we can see there is a `NOTREACHED()` macro in the switch case
