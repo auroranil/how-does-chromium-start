@@ -2,7 +2,7 @@
 
 This is my own notes of me learning how [chromium](https://github.com/chromium/chromium) starts running its program, by exploring the git repository. As of 2020, Chrome is the most popular used browser out of all, so it would be quite interesting to see how the internals work.
 
-It's [basically this](https://chromium.googlesource.com/chromium/src/+/master/docs/design/startup.md), except in more detail.
+It's [basically this](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/docs/design/startup.md), except in more detail.
 
 Please correct me if I get it wrong somewhere throughout this document (I still need to learn more about C and C++). I have checkout commit `4900686dee9aacdb5ac0a203acbef587c292e6fe`, which was pushed on Sunday 12th of April, 2020, at 08:20:43. All links to source files are based on this commit. All years specified before the filename refer to the year specified in the copyright comment at the beginning of each source file.
 
