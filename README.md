@@ -136,7 +136,7 @@ As we are still in the early initialisation process, `ChromeMain` function still
 -   We see that for the Windows platform, the arguments are `HINSTANCE instance`, `sandbox::SandboxInterfaceInfo* sandbox_info` and `int64_t exe_entry_point_ticks`.
 -   For POSIX platforms, the arguments are simply `int argc` and `const char** argv`.
 
-## Function `ChromeMainDelegate::OverrideProcessType()`
+## Function `ChromeMainDelegate::OverrideProcessType`
 
 #### Year 2012: [`chrome/app/chrome_main_delegate.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/chrome/app/chrome_main_delegate.cc)
 
