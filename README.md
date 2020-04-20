@@ -296,6 +296,87 @@ int ContentMainRunnerImpl::Run(bool start_service_manager_only) {
 }
 ```
 
+## Function `content::BrowserMain`
+
+#### Year 2012: [`content/browser/browser_main.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/content/browser/browser_main.cc)
+
+```c++
+namespace content {
+// ...
+// Main routine for running as the Browser process.
+int BrowserMain(const MainFunctionParams& parameters) {
+  ScopedBrowserMainEvent scoped_browser_main_event;
+
+  base::trace_event::TraceLog::GetInstance()->set_process_name("Browser");
+  base::trace_event::TraceLog::GetInstance()->SetProcessSortIndex(
+      kTraceEventBrowserProcessSortIndex);
+
+  std::unique_ptr<BrowserMainRunnerImpl> main_runner(
+      BrowserMainRunnerImpl::Create());
+
+  int exit_code = main_runner->Initialize(parameters);
+  if (exit_code >= 0)
+    return exit_code;
+
+  exit_code = main_runner->Run();
+
+  main_runner->Shutdown();
+
+  return exit_code;
+}
+
+}  // namespace content
+```
+
+## Function `BrowserMainRunnerImpl::Run`
+
+#### Year 2012: [`content/browser/browser_main_runner_impl.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/content/browser/browser_main_runner_impl.cc)
+
+```c++
+int BrowserMainRunnerImpl::Run() {
+  DCHECK(initialization_started_);
+  DCHECK(!is_shutdown_);
+  main_loop_->RunMainMessageLoopParts();
+  return main_loop_->GetResultCode();
+}
+```
+
+`std::unique_ptr<BrowserMainLoop> main_loop_;`
+
+## Class `BrowserMainLoop`
+
+#### Year 2012: [`content/browser/browser_main_loop.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/content/browser/browser_main_loop.cc)
+
+```c++
+void BrowserMainLoop::RunMainMessageLoopParts() {
+  // Don't use the TRACE_EVENT0 macro because the tracing infrastructure doesn't
+  // expect synchronous events around the main loop of a thread.
+  TRACE_EVENT_ASYNC_BEGIN0("toplevel", "BrowserMain:MESSAGE_LOOP", this);
+
+  bool ran_main_loop = false;
+  if (parts_)
+    ran_main_loop = parts_->MainMessageLoopRun(&result_code_);
+
+  if (!ran_main_loop)
+    MainMessageLoopRun();
+
+  TRACE_EVENT_ASYNC_END0("toplevel", "BrowserMain:MESSAGE_LOOP", this);
+}
+
+// ...
+
+void BrowserMainLoop::MainMessageLoopRun() {
+#if defined(OS_ANDROID)
+  // Android's main message loop is the Java message loop.
+  NOTREACHED();
+#else
+  base::RunLoop run_loop;
+  parts_->PreDefaultMainMessageLoopRun(run_loop.QuitClosure());
+  run_loop.Run();
+#endif
+}
+```
+
 ## Function `RunLoop::Run`
 
 #### Year 2012: [`base/run_loop.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/base/run_loop.cc)
