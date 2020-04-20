@@ -129,12 +129,30 @@ int ChromeMain(int argc, const char** argv) {
 }
 ```
 
-We look at the implementation of `ChromeMain`, and we see that it invokes `content::ContentMain()` (if Chromium was run with `--headless` flag set, then it would instead call `headless::HeadlessShellMain()`). The arguments provided by the command line are passed to this function.
+We look at the implementation of `ChromeMain`, and we see that after constructing `ChromeMainDelegate`, it invokes `content::ContentMain()` (if Chromium was run with `--headless` flag set, then it would instead call `headless::HeadlessShellMain()`). The arguments provided by the command line are passed to this function.
 
 As we are still in the early initialisation process, `ChromeMain` function still has to deal on a platform-by-platform case basis. This is done by using control preprocessor directives such as `#if defined(OS_WIN)` and `#elif defined(OS_POSIX)`. These flags are defined in file [`build/build_config.h`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/build/build_config.h). We have a look at how `ChromeMain` works on a platform-by-platform case basis.
 
 -   We see that for the Windows platform, the arguments are `HINSTANCE instance`, `sandbox::SandboxInterfaceInfo* sandbox_info` and `int64_t exe_entry_point_ticks`.
 -   For POSIX platforms, the arguments are simply `int argc` and `const char** argv`.
+
+## Function `ChromeMainDelegate::OverrideProcessType()`
+
+#### Year 2012: [`chrome/app/chrome_main_delegate.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/chrome/app/chrome_main_delegate.cc)
+
+```c++
+service_manager::ProcessType ChromeMainDelegate::OverrideProcessType() {
+  const auto& command_line = *base::CommandLine::ForCurrentProcess();
+  if (command_line.GetSwitchValueASCII(switches::kProcessType) ==
+      service_manager::switches::kProcessTypeService) {
+    // Don't mess with embedded service command lines.
+    return service_manager::ProcessType::kDefault;
+  }
+  return service_manager::ProcessType::kDefault;
+}
+```
+
+Why we are seeing this function out of no where? Well, note that `ChromeMainDelegate` was constructed in `ChromeMain`. The function `ChromeMainDelegate::OverrrideProcessType()` will make sense once we see `service_manager::Main()` function (down below). For now, all we need to know is that it returns `ProcessType::kDefault`.
 
 ## Function `content::ContentMain`
 
@@ -159,6 +177,7 @@ int ContentMain(const ContentMainParams& params) {
 ```c++
 int Main(const MainParams& params) {
   MainDelegate* delegate = params.delegate;
+  DCHECK(delegate);
   // ...
   int exit_code = -1;
   // ...
@@ -204,7 +223,8 @@ int Main(const MainParams& params) {
 Notes:
 
 -   There are three process types: `ProcessType::kServiceManager`, `ProcessType::kService` and `ProcessType::kEmbedder`. `ProcessType::kDefault` is not really a process type, and we can see there is a `NOTREACHED()` macro in the switch case
--   The `NOTREACHED()` macro is an assertion that will always fail, which happens when the `ProcessType::kDefault` case has been reached (see [this link](https://chromium.googlesource.com/chromium/src/+/master/styleguide/c++/c++.md#check_dcheck_and-notreached)).
+-   The `DCHECK(delegate)` macro is an assertion that will fail if `delegate` value has not been populated (see [this link](https://chromium.googlesource.com/chromium/src/+/master/styleguide/c++/c++.md#check_dcheck_and-notreached)).
+-   The `NOTREACHED()` macro is an assertion that will always fail, which happens when the `ProcessType::kDefault` case has been reached
 -   Service manager first checks to see if the process type has been overrided. If it hasn't, it checks the command line for a process type switch, and updates the process type accordingly.
 -   `switches::kProcessType` is equal to `"type"`
 -   `*base::CommandLine::ForCurrentProcess()` is a getter method
