@@ -10,11 +10,11 @@ Please correct me if I get it wrong somewhere throughout this document (I still 
 
 As chromium runs on various platforms, there are entry points for each type of operating system there are. For Windows and Mac, there are wrapper functions within the entry point files.
 
-| OS          | File                                 | Entry-level function                                                       |
-| ----------- | ------------------------------------ | -------------------------------------------------------------------------- |
-| Windows     | `chrome/app/chrome_exe_main_win.cc`  | `int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE prev, wchar_t*, int)` |
-| Mac         | `chrome/app/chrome_exe_main_mac.cc`  | `int main(int argc, char* argv[])`                                         |
-| Linux/other | `chrome/app/chrome_exe_main_aura.cc` | `int main(int argc, const char** argv)`                                    |
+| OS          | File                                                                                                                                                                 | Entry-level function                                                       |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Windows     | [`chrome/app/chrome_exe_main_win.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/chrome/app/chrome_exe_main_win.cc)   | `int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE prev, wchar_t*, int)` |
+| Mac         | [`chrome/app/chrome_exe_main_mac.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/chrome/app/chrome_exe_main_mac.cc)   | `int main(int argc, char* argv[])`                                         |
+| Linux/other | [`chrome/app/chrome_exe_main_aura.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/chrome/app/chrome_exe_main_aura.cc) | `int main(int argc, const char** argv)`                                    |
 
 In all these files, they all invoke the function ChromeMain.
 
@@ -36,14 +36,23 @@ int main() {
   int rc = loader->Launch(instance, exe_entry_point_ticks);
   // ...
 }
-
 ```
+
+Chromium uses [`wWinMain`](https://docs.microsoft.com/en-us/windows/win32/learnwin32/winmain--the-application-entry-point) as the application entry point for Windows GUI applications.
 
 #### Year 2012: [`chrome/app/main_dll_loader_win.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/chrome/app/main_dll_loader_win.cc)
 
 ```c++
+namespace {
+typedef int (*DLL_MAIN)(HINSTANCE, sandbox::SandboxInterfaceInfo*, int64_t);
+}
 int MainDllLoader::Launch(HINSTANCE instance,
                           base::TimeTicks exe_entry_point_ticks) {
+  // ...
+  base::FilePath file;
+  dll_ = Load(&file);
+  if (!dll_)
+    return chrome::RESULT_CODE_MISSING_DATA;
   // ...
   DLL_MAIN chrome_main =
   reinterpret_cast<DLL_MAIN>(::GetProcAddress(dll_, "ChromeMain"));
