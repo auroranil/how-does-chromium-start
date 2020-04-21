@@ -554,6 +554,57 @@ void RunLoop::Run() {
 }  // namespace base
 ```
 
+## Function `ThreadControllerWithMessagePumpImpl::Run`
+
+#### Year 2018: [`base/task/sequence_manager/thread_controller_with_message_pump_impl.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/base/task/sequence_manager/thread_controller_with_message_pump_impl.cc)
+
+```c++
+void ThreadControllerWithMessagePumpImpl::Run(bool application_tasks_allowed,
+                                              TimeDelta timeout) {
+  DCHECK(RunsTasksInCurrentSequence());
+  // RunLoops can be nested so we need to restore the previous value of
+  // |quit_runloop_after| upon exit. NB we could use saturated arithmetic here
+  // but don't because we have some tests which assert the number of calls to
+  // Now.
+  AutoReset<TimeTicks> quit_runloop_after(
+      &main_thread_only().quit_runloop_after,
+      (timeout == TimeDelta::Max()) ? TimeTicks::Max()
+                                    : time_source_->NowTicks() + timeout);
+
+#if DCHECK_IS_ON()
+  AutoReset<bool> quit_when_idle_requested(&quit_when_idle_requested_, false);
+#endif
+
+  // Quit may have been called outside of a Run(), so |quit_pending| might be
+  // true here. We can't use InTopLevelDoWork() in Quit() as this call may be
+  // outside top-level DoWork but still in Run().
+  main_thread_only().quit_pending = false;
+  main_thread_only().runloop_count++;
+  if (application_tasks_allowed && !main_thread_only().task_execution_allowed) {
+    // Allow nested task execution as explicitly requested.
+    DCHECK(RunLoop::IsNestedOnCurrentThread());
+    main_thread_only().task_execution_allowed = true;
+    pump_->Run(this);
+    main_thread_only().task_execution_allowed = false;
+  } else {
+    pump_->Run(this);
+  }
+
+#if DCHECK_IS_ON()
+  if (log_runloop_quit_and_quit_when_idle_)
+    DVLOG(1) << "ThreadControllerWithMessagePumpImpl::Quit";
+#endif
+
+  main_thread_only().runloop_count--;
+  main_thread_only().quit_pending = false;
+
+  // Reset the hang watch scope upon exiting the outermost loop since the
+  // execution it covers is now completely over.
+  if (main_thread_only().runloop_count == 0)
+    hang_watch_scope_.reset();
+}
+```
+
 ## Obligatory License
 
     // Copyright 2015 The Chromium Authors. All rights reserved.
