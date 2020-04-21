@@ -328,11 +328,83 @@ int BrowserMain(const MainFunctionParams& parameters) {
 }  // namespace content
 ```
 
-## Function `BrowserMainRunnerImpl::Run`
+## Class `BrowserMainRunnerImpl`
 
 #### Year 2012: [`content/browser/browser_main_runner_impl.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/content/browser/browser_main_runner_impl.cc)
 
 ```c++
+int BrowserMainRunnerImpl::Initialize(const MainFunctionParams& parameters) {
+  SCOPED_UMA_HISTOGRAM_LONG_TIMER(
+      "Startup.BrowserMainRunnerImplInitializeLongTime");
+  TRACE_EVENT0("startup", "BrowserMainRunnerImpl::Initialize");
+
+  // On Android we normally initialize the browser in a series of UI thread
+  // tasks. While this is happening a second request can come from the OS or
+  // another application to start the browser. If this happens then we must
+  // not run these parts of initialization twice.
+  if (!initialization_started_) {
+    initialization_started_ = true;
+
+    const base::TimeTicks start_time_step1 = base::TimeTicks::Now();
+
+    SkGraphics::Init();
+
+    // ...
+    notification_service_.reset(new NotificationServiceImpl);
+
+#if defined(OS_WIN)
+    // Ole must be initialized before starting message pump, so that TSF
+    // (Text Services Framework) module can interact with the message pump
+    // on Windows 8 Metro mode.
+    ole_initializer_.reset(new ui::ScopedOleInitializer);
+#endif  // OS_WIN
+
+    gfx::InitializeFonts();
+
+    main_loop_.reset(
+        new BrowserMainLoop(parameters, std::move(scoped_execution_fence_)));
+
+    main_loop_->Init();
+
+    if (parameters.created_main_parts_closure) {
+      std::move(*parameters.created_main_parts_closure)
+          .Run(main_loop_->parts());
+      delete parameters.created_main_parts_closure;
+    }
+
+    const int early_init_error_code = main_loop_->EarlyInitialization();
+    if (early_init_error_code > 0)
+      return early_init_error_code;
+
+    // Must happen before we try to use a message loop or display any UI.
+    if (!main_loop_->InitializeToolkit())
+      return 1;
+
+    main_loop_->PreMainMessageLoopStart();
+    main_loop_->MainMessageLoopStart();
+    main_loop_->PostMainMessageLoopStart();
+
+    // WARNING: If we get a WM_ENDSESSION, objects created on the stack here
+    // are NOT deleted. If you need something to run during WM_ENDSESSION add it
+    // to browser_shutdown::Shutdown or BrowserProcess::EndSession.
+
+    ui::InitializeInputMethod();
+    UMA_HISTOGRAM_TIMES("Startup.BrowserMainRunnerImplInitializeStep1Time",
+                        base::TimeTicks::Now() - start_time_step1);
+  }
+  const base::TimeTicks start_time_step2 = base::TimeTicks::Now();
+  main_loop_->CreateStartupTasks();
+  int result_code = main_loop_->GetResultCode();
+  if (result_code > 0)
+    return result_code;
+
+  UMA_HISTOGRAM_TIMES("Startup.BrowserMainRunnerImplInitializeStep2Time",
+                      base::TimeTicks::Now() - start_time_step2);
+
+  // Return -1 to indicate no early termination.
+  return -1;
+}
+
 int BrowserMainRunnerImpl::Run() {
   DCHECK(initialization_started_);
   DCHECK(!is_shutdown_);
@@ -348,6 +420,59 @@ int BrowserMainRunnerImpl::Run() {
 #### Year 2012: [`content/browser/browser_main_loop.cc`](https://chromium.googlesource.com/chromium/src/+/4900686dee9aacdb5ac0a203acbef587c292e6fe/content/browser/browser_main_loop.cc)
 
 ```c++
+bool BrowserMainLoop::InitializeToolkit() {
+  TRACE_EVENT0("startup", "BrowserMainLoop::InitializeToolkit");
+
+#if defined(OS_WIN)
+  INITCOMMONCONTROLSEX config;
+  config.dwSize = sizeof(config);
+  config.dwICC = ICC_WIN95_CLASSES;
+  if (!InitCommonControlsEx(&config))
+    PLOG(FATAL);
+#endif
+
+#if defined(USE_AURA)
+
+#if defined(USE_X11)
+  if (!parsed_command_line_.HasSwitch(switches::kHeadless) &&
+      !gfx::GetXDisplay()) {
+    LOG(ERROR) << "Unable to open X display.";
+    return false;
+  }
+#endif
+
+  // Env creates the compositor. Aura widgets need the compositor to be created
+  // before they can be initialized by the browser.
+  env_ = aura::Env::CreateInstance();
+#endif  // defined(USE_AURA)
+
+  if (parts_)
+    parts_->ToolkitInitialized();
+
+  return true;
+}
+
+void BrowserMainLoop::PreMainMessageLoopStart() {
+  TRACE_EVENT0("startup",
+               "BrowserMainLoop::MainMessageLoopStart:PreMainMessageLoopStart");
+  if (parts_) {
+    parts_->PreMainMessageLoopStart();
+  }
+}
+
+void BrowserMainLoop::MainMessageLoopStart() {
+  // DO NOT add more code here. Use PreMainMessageLoopStart() above or
+  // PostMainMessageLoopStart() below.
+
+  TRACE_EVENT0("startup", "BrowserMainLoop::MainMessageLoopStart");
+  DCHECK(base::MessageLoopCurrentForUI::IsSet());
+  InitializeMainThread();
+}
+
+void BrowserMainLoop::PostMainMessageLoopStart() {
+  // ...
+}
+
 void BrowserMainLoop::RunMainMessageLoopParts() {
   // Don't use the TRACE_EVENT0 macro because the tracing infrastructure doesn't
   // expect synchronous events around the main loop of a thread.
@@ -376,6 +501,10 @@ void BrowserMainLoop::MainMessageLoopRun() {
 #endif
 }
 ```
+
+Notes:
+
+-   If you run `chromium-browser` in a TTY terminal (that is, no GUI), it will output `"Unable to open X display."` error message.
 
 ## Class `RunLoop`
 
